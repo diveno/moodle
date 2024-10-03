@@ -25,31 +25,40 @@ $a = optional_param('a', '', PARAM_INT);                            // scorm ID
 $scoid = required_param('scoid', PARAM_INT);                        // sco ID
 $mode = optional_param('mode', 'normal', PARAM_ALPHA);              // navigation mode
 $currentorg = optional_param('currentorg', '', PARAM_RAW);          // selected organization
+$scoes = $DB->get_records_select('scorm_scoes', 'scorm = ? AND '.
+    $DB->sql_isnotempty('scorm_scoes', 'launch', false, true), array($scorm->id), 'sortorder, id', 'id');
+
+if (($sco->organization == '') && ($sco->launch == '')) {
+    $currentorg = $sco->identifier;
+} else {
+    $currentorg = $sco->organization;
+}
+
 $newattempt = optional_param('newattempt', 'off', PARAM_ALPHA);     // the user request to start a new attempt.
 $displaymode = optional_param('display', '', PARAM_ALPHA);
 
 if (!empty($id)) {
     if (! $cm = get_coursemodule_from_id('scorm', $id, 0, true)) {
-        throw new \moodle_exception('invalidcoursemodule');
+        print_error('invalidcoursemodule');
     }
     if (! $course = $DB->get_record("course", array("id" => $cm->course))) {
-        throw new \moodle_exception('coursemisconf');
+        print_error('coursemisconf');
     }
     if (! $scorm = $DB->get_record("scorm", array("id" => $cm->instance))) {
-        throw new \moodle_exception('invalidcoursemodule');
+        print_error('invalidcoursemodule');
     }
 } else if (!empty($a)) {
     if (! $scorm = $DB->get_record("scorm", array("id" => $a))) {
-        throw new \moodle_exception('invalidcoursemodule');
+        print_error('invalidcoursemodule');
     }
     if (! $course = $DB->get_record("course", array("id" => $scorm->course))) {
-        throw new \moodle_exception('coursemisconf');
+        print_error('coursemisconf');
     }
     if (! $cm = get_coursemodule_from_instance("scorm", $scorm->id, $course->id, true)) {
-        throw new \moodle_exception('invalidcoursemodule');
+        print_error('invalidcoursemodule');
     }
 } else {
-    throw new \moodle_exception('missingparameter');
+    print_error('missingparameter');
 }
 
 // PARAM_RAW is used for $currentorg, validate it against records stored in the table.
@@ -175,13 +184,13 @@ if (empty($scorm->popup) || $displaymode == 'popup') {
 
 // Print the page header.
 $PAGE->requires->data_for_js('scormplayerdata', Array('launch' => false,
-                                                       'currentorg' => '',
-                                                       'sco' => 0,
-                                                       'scorm' => 0,
-                                                       'courseid' => $scorm->course,
-                                                       'cwidth' => $scorm->width,
-                                                       'cheight' => $scorm->height,
-                                                       'popupoptions' => $scorm->options), true);
+    'currentorg' => '',
+    'sco' => 0,
+    'scorm' => 0,
+    'courseid' => $scorm->course,
+    'cwidth' => $scorm->width,
+    'cheight' => $scorm->height,
+    'popupoptions' => $scorm->options), true);
 $PAGE->requires->js('/mod/scorm/request.js', true);
 $PAGE->requires->js('/lib/cookies.js', true);
 
@@ -216,7 +225,7 @@ if ($displaymode !== 'popup') {
 echo html_writer::start_div('', array('id' => 'scormpage'));
 echo html_writer::start_div('', array('id' => 'tocbox'));
 echo html_writer::div(html_writer::tag('script', '', array('id' => 'external-scormapi', 'type' => 'text/JavaScript')), '',
-                        array('id' => 'scormapi-parent'));
+    array('id' => 'scormapi-parent'));
 
 if ($scorm->hidetoc == SCORM_TOC_POPUP or $mode == 'browse' or $mode == 'review') {
     echo html_writer::start_div('mb-3', array('id' => 'scormtop'));
@@ -237,7 +246,7 @@ if (empty($scorm->popup) || $displaymode == 'popup') {
     // Added incase javascript popups are blocked we don't provide a direct link
     // to the pop-up as JS communication can fail - the user must disable their pop-up blocker.
     $linkcourse = html_writer::link($CFG->wwwroot.'/course/view.php?id='.
-                    $scorm->course, get_string('finishscormlinkname', 'scorm'));
+        $scorm->course, get_string('finishscormlinkname', 'scorm'));
     echo $OUTPUT->box(get_string('finishscorm', 'scorm', $linkcourse), 'generalbox', 'altfinishlink');
 }
 echo html_writer::end_div(); // Toc tree ends.
@@ -256,10 +265,10 @@ if ($result->prerequisites) {
         $url = new moodle_url($PAGE->url, array('scoid' => $sco->id, 'display' => 'popup', 'mode' => $mode));
         echo html_writer::script(
             js_writer::function_call('scorm_openpopup', Array($url->out(false),
-                                                       $name, $scorm->options,
-                                                       $scorm->width, $scorm->height)));
+                $name, $scorm->options,
+                $scorm->width, $scorm->height)));
         echo html_writer::tag('noscript', html_writer::tag('iframe', '', array('id' => 'main',
-                                'class' => 'scoframe', 'name' => 'main', 'src' => 'loadSCO.php?id='.$cm->id.$scoidstr.$modestr)));
+            'class' => 'scoframe', 'name' => 'main', 'src' => 'loadSCO.php?id='.$cm->id.$scoidstr.$modestr)));
     }
 } else {
     echo $OUTPUT->box(get_string('noprerequisites', 'scorm'));
@@ -280,7 +289,7 @@ if (empty($scorm->popup) || $displaymode == 'popup') {
     );
     $scorm->nav = intval($scorm->nav);
     $PAGE->requires->js_init_call('M.mod_scorm.init', array($scorm->nav, $scorm->navpositionleft, $scorm->navpositiontop,
-                            $scorm->hidetoc, $collapsetocwinsize, $result->toctitle, $name, $sco->id, $adlnav), false, $jsmodule);
+        $scorm->hidetoc, $collapsetocwinsize, $result->toctitle, $name, $sco->id, $adlnav), false, $jsmodule);
 }
 if (!empty($forcejs)) {
     $message = $OUTPUT->box(get_string("forcejavascriptmessage", "scorm"), "generalbox boxaligncenter forcejavascriptmessage");
@@ -300,3 +309,22 @@ echo $OUTPUT->footer();
 
 // Set the start time of this SCO.
 scorm_insert_track($USER->id, $scorm->id, $scoid, $attempt, 'x.start.time', time());
+
+?>
+<style>
+    #scorm_toc{
+        display: none !important;
+    }
+    #scorm_toc_toggle{
+        display: none !important;
+    }
+    #page-content h2{
+        display: none !important;
+    }
+    #page-mod-scorm-player #scormpage div.yui3-u-3-4 {
+        width: 100% !important;
+    }
+    #scorm_nav{
+        display: none !important;
+    }
+</style>
